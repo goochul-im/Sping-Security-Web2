@@ -1,6 +1,8 @@
 package io.security.springsecuritymaster.security.manager;
 
+import io.security.springsecuritymaster.admin.repository.ResourcesRepository;
 import io.security.springsecuritymaster.security.mapper.MapBasedUrlRoleMapper;
+import io.security.springsecuritymaster.security.mapper.PersistentUrlRoleMapper;
 import io.security.springsecuritymaster.security.service.DynamicAuthorizationService;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
@@ -27,11 +29,13 @@ public class CustomDynamicAuthorizationManager implements AuthorizationManager<R
 
     private List<RequestMatcherEntry<AuthorizationManager<RequestAuthorizationContext>>> mappings;
     private static final AuthorizationDecision DENY = new AuthorizationDecision(false);
+    private static final AuthorizationDecision ACCESS = new AuthorizationDecision(true);
     private final HandlerMappingIntrospector handlerMappingIntrospector;
+    private final ResourcesRepository resourcesRepository;
 
     @PostConstruct // 빈이 생성된 이후 호출되도록 함
     public void mapping() {
-        DynamicAuthorizationService dynamicAuthorizationService = new DynamicAuthorizationService(new MapBasedUrlRoleMapper());
+        DynamicAuthorizationService dynamicAuthorizationService = new DynamicAuthorizationService(new PersistentUrlRoleMapper(resourcesRepository));
         mappings = dynamicAuthorizationService.getRoleMappings()
                 .entrySet().stream()
                 .map(entry -> new RequestMatcherEntry<>(
@@ -60,7 +64,7 @@ public class CustomDynamicAuthorizationManager implements AuthorizationManager<R
             }
         }
 
-        return DENY;
+        return ACCESS;
     }
 
     private AuthorizationManager<RequestAuthorizationContext> customAuthorizationManager(String role) {
