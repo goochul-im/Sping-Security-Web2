@@ -32,10 +32,15 @@ public class CustomDynamicAuthorizationManager implements AuthorizationManager<R
     private static final AuthorizationDecision ACCESS = new AuthorizationDecision(true);
     private final HandlerMappingIntrospector handlerMappingIntrospector;
     private final ResourcesRepository resourcesRepository;
+    DynamicAuthorizationService dynamicAuthorizationService;
 
     @PostConstruct // 빈이 생성된 이후 호출되도록 함
     public void mapping() {
-        DynamicAuthorizationService dynamicAuthorizationService = new DynamicAuthorizationService(new PersistentUrlRoleMapper(resourcesRepository));
+        dynamicAuthorizationService = new DynamicAuthorizationService(new PersistentUrlRoleMapper(resourcesRepository));
+        setMapping();
+    }
+
+    private void setMapping() {
         mappings = dynamicAuthorizationService.getRoleMappings()
                 .entrySet().stream()
                 .map(entry -> new RequestMatcherEntry<>(
@@ -73,5 +78,10 @@ public class CustomDynamicAuthorizationManager implements AuthorizationManager<R
         } else {
             return new WebExpressionAuthorizationManager(role);
         }
+    }
+
+    public synchronized void reload() {
+        mappings.clear();
+        setMapping();
     }
 }
